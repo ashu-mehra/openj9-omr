@@ -38,6 +38,7 @@ typedef struct OMRMemCategory {
 	uintptr_t liveAllocations;
 	const uint32_t numberOfChildren;
 	const uint32_t *const children;
+	uintptr_t bytesInRam;
 } OMRMemCategory;
 
 typedef struct OMRMemCategorySet {

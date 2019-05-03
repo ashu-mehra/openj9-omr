@@ -137,7 +137,11 @@ subtractAtomic(volatile uintptr_t *address, uintptr_t value);
  * @note This method can spin indefinitely while attempting to write
  * the new value.
  */
-uintptr_t setAtomic(volatile uintptr_t *address, uintptr_t value);
+uintptr_t
+setAtomic(volatile uintptr_t *address, uintptr_t value);
+
+void
+yieldCPU();
 
 /* ---------------- cas8help.s ---------------- */
 #if !defined(OMR_ENV_DATA64) && (defined(AIXPPC) || defined(LINUXPPC))

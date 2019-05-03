@@ -185,24 +185,34 @@ static uintptr_t
 _recursive_category_walk_children(struct OMRPortLibrary *portLibrary, OMRMemCategoryWalkState *state, OMRMemCategory *parent)
 {
 	uint32_t i;
-	uintptr_t result;
+	uintptr_t result = J9MEM_CATEGORIES_KEEP_ITERATING;
 
 	for (i = 0; i < parent->numberOfChildren; i++) {
 		uint32_t childCode = parent->children[i];
 		OMRMemCategory *child = omrmem_get_category(portLibrary, childCode);
-		result = state->walkFunction(child->categoryCode, child->name, child->liveBytes, child->liveAllocations, FALSE, parent->categoryCode, state);
 
-		if (result == J9MEM_CATEGORIES_KEEP_ITERATING) {
-			result = _recursive_category_walk_children(portLibrary, state, child);
+		if (!state->postOrder) {
+			result = state->walkFunction(child->categoryCode, child->name, child->liveBytes, child->liveAllocations, FALSE, parent->categoryCode, state);
 
-			if (result != J9MEM_CATEGORIES_KEEP_ITERATING) {
+			if (result == J9MEM_CATEGORIES_KEEP_ITERATING) {
+				result = _recursive_category_walk_children(portLibrary, state, child);
+
+				if (result != J9MEM_CATEGORIES_KEEP_ITERATING) {
+					return result;
+				}
+			} else {
 				return result;
 			}
 		} else {
-			return result;
+			result = _recursive_category_walk_children(portLibrary, state, child);
+			if (result == J9MEM_CATEGORIES_KEEP_ITERATING) {
+				result = state->walkFunction(child->categoryCode, child->name, child->liveBytes, child->liveAllocations, FALSE, parent->categoryCode, state);
+			}
+			if (result != J9MEM_CATEGORIES_KEEP_ITERATING) {
+				return result;
+			}
 		}
 	}
-
 	return J9MEM_CATEGORIES_KEEP_ITERATING;
 }
 
@@ -211,12 +221,20 @@ _recursive_category_walk_root(struct OMRPortLibrary *portLibrary, OMRMemCategory
 {
 	uintptr_t result;
 
-	result = state->walkFunction(walkPoint->categoryCode, walkPoint->name, walkPoint->liveBytes, walkPoint->liveAllocations, TRUE, 0, state);
-
-	if (result == J9MEM_CATEGORIES_KEEP_ITERATING) {
-		return _recursive_category_walk_children(portLibrary, state, walkPoint);
+	if (!state->postOrder) {
+		result = state->walkFunction(walkPoint->categoryCode, walkPoint->name, walkPoint->liveBytes, walkPoint->liveAllocations, TRUE, 0, state);
+		if (result == J9MEM_CATEGORIES_KEEP_ITERATING) {
+			return _recursive_category_walk_children(portLibrary, state, walkPoint);
+		} else {
+			return result;
+		}
 	} else {
-		return result;
+		result = _recursive_category_walk_children(portLibrary, state, walkPoint);
+		if (result == J9MEM_CATEGORIES_KEEP_ITERATING) {
+			return state->walkFunction(walkPoint->categoryCode, walkPoint->name, walkPoint->liveBytes, walkPoint->liveAllocations, TRUE, 0, state);
+		} else {
+			return result;
+		}
 	}
 }
 

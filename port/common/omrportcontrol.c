@@ -289,6 +289,15 @@ omrport_control(struct OMRPortLibrary *portLibrary, const char *key, uintptr_t v
 		return 0;
 	}
 
+	if (0 == strcmp(OMRPORT_CTLDATA_ENABLE_RAM_USAGE_TRACKING, key)) {
+		PPG_enableRamUsageTracking = PPG_ramUsageTrackingSupported;
+		return PPG_enableRamUsageTracking; 
+	}
+
+	if (0 == strcmp(OMRPORT_CTLDATA_IS_RAM_USAGE_TRACKING_ENABLED, key)) {
+		return PPG_enableRamUsageTracking;
+	}
+
 	return 1;
 }
 

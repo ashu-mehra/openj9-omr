@@ -1024,3 +1024,89 @@ omrthread_get_jvm_cpu_usage_info_error_recovery(void)
 		GLOBAL_UNLOCK_SIMPLE(lib);
 	}
 }
+
+#if 0
+#if defined(LINUX)
+
+#define PAGE_IS_RESIDENT(value) ((value) & 0x1)
+
+uintptr_t
+getBytesInRam(uintptr_t startAddr, uintptr_t endAddr)
+{
+	uintptr_t memoryCounter = 0;
+	intptr_t pageSize = getpagesize();
+	uintptr_t roundedStart = ROUND_DOWN_TO(startAddr, pageSize);
+	uintptr_t roundedEnd = ROUND_UP_TO(endAddr, pageSize);
+	size_t length = roundedEnd - roundedStart;
+	int32_t numPages = length/pageSize;
+	uint8_t vec[numPages];
+	int32_t rc = 0;
+
+	memset(vec, 0, numPages);
+	rc = mincore((void *)roundedStart, length, (unsigned char *)vec);
+	if (0 != rc) {
+		perror("mincore failed");
+	} else {
+		uintptr_t page = 0;
+
+		for (page = roundedStart; page < roundedEnd; page += pageSize) {
+			int32_t pageIndex = (page - roundedStart) / pageSize;
+
+			if (PAGE_IS_RESIDENT(vec[pageIndex])) {
+				memoryCounter += pageSize;
+			}
+		}
+		/* subtract the part not present in first and last page */
+		if (PAGE_IS_RESIDENT(vec[0])) {
+			memoryCounter -= (startAddr - roundedStart);
+		}
+		if (PAGE_IS_RESIDENT(vec[numPages - 1])) {
+			memoryCounter -= (roundedEnd - endAddr);
+		}
+	}
+	return memoryCounter;
+}
+
+void
+omrthread_update_memory_usage(void)
+{
+	omrthread_t walkThread = NULL;
+	pool_state state;
+	int32_t unownedState = J9THREAD_MEMORY_LIST_LOCK_UNOWNED;
+	int32_t ownedState = J9THREAD_MEMORY_LIST_LOCK_OWNED;
+
+	/* Need to hold the lib->monitor_mutex while walking the thread_pool */
+	GLOBAL_LOCK_SIMPLE(lib);
+	lib->threadWalkMutexesHeld = THREAD_WALK_MONITOR_MUTEX_HELD;
+
+	/* Walk the list of threads and update the memory usage */
+	walkThread = pool_startDo(lib->thread_pool, &state);
+	for (; NULL != walkThread; walkThread = pool_nextDo(&state)) {
+		J9MemTag *memoryBlock = NULL;
+		uint32_t lock = &walkThread->memoryListLock;	
+		do {
+			while (*target == ownedState) { /* another thread is owning the lock */
+				yieldCPU();
+			}
+			compareAndSwapU32(lock, unownedState, ownedState);
+		} while (rc != unownedState);
+
+		memoryBlock = (J9MemTag *)walkThread->memoryBlockList;
+		while (NULL != memoryBlock) {
+			uintptr_t memoryCounter = 0;
+			uintptr_t startAddr = (uintptr_t)memoryBlock;
+			uintptr_t endAddr = startAddr + ROUNDED_BYTE_AMOUNT(memoryBlock->allocSize);
+
+			memoryInRam = getBytesInRam(startAddr, endAddr);
+			memoryBlock->category->bytesInRam += memoryInRam;
+
+			memoryBlock = memoryBlock->next;
+		}
+
+		compareAndSwapU32(lock, ownedState, unownedState);
+	}
+	lib->threadWalkMutexesHeld = 0;
+	GLOBAL_UNLOCK_SIMPLE(lib);
+}
+#endif
+#endif /* 0 */

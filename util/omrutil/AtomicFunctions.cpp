@@ -70,3 +70,9 @@ setAtomic(volatile uintptr_t *address, uintptr_t value)
 {
 	return VM_AtomicSupport::set(address, value);
 }
+
+void
+yieldCPU()
+{
+	return VM_AtomicSupport::yieldCPU();
+}

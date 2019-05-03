@@ -472,6 +472,8 @@ typedef struct J9MemTag {
 	uintptr_t allocSize;
 	const char *callSite;
 	OMRMemCategory *category;
+	struct J9MemTag *next;
+	struct J9MemTag *prev;
 #if !defined(OMR_ENV_DATA64)
 	/* omrmem_allocate_memory should return addresses aligned to 8 bytes for
 	 * performance reasons. On 32 bit platforms we have to pad to achieve this.
@@ -571,6 +573,7 @@ typedef struct OMRMemCategoryWalkState {
 
 	void *userData1;
 	void *userData2;
+	BOOLEAN postOrder;
 } OMRMemCategoryWalkState;
 
 typedef enum J9MemoryState {J9NUMA_PREFERRED, J9NUMA_ALLOWED, J9NUMA_DENIED} J9MemoryState;
@@ -723,6 +726,8 @@ typedef struct J9ProcessorInfos {
 #define OMRPORT_CTLDATA_NOSUBALLOC32BITMEM  "NOSUBALLOC32BITMEM"
 #define OMRPORT_CTLDATA_VMEM_ADVISE_OS_ONFREE  "VMEM_ADVISE_OS_ONFREE"
 #define OMRPORT_CTLDATA_VECTOR_REGS_SUPPORT_ON  "VECTOR_REGS_SUPPORT_ON"
+#define OMRPORT_CTLDATA_ENABLE_RAM_USAGE_TRACKING "ENABLE_RAM_USAGE_TRACKING"
+#define OMRPORT_CTLDATA_IS_RAM_USAGE_TRACKING_ENABLED "IS_RAM_USAGE_TRACKING_ENABLED"
 
 #define OMRPORT_FILE_READ_LOCK  1
 #define OMRPORT_FILE_WRITE_LOCK  2
@@ -1331,6 +1336,12 @@ typedef struct OMRPortLibrary {
 	void (*mem_free_memory32)(struct OMRPortLibrary *portLibrary, void *memoryPointer) ;
 	/** see @ref omrmem.c::omrmem_ensure_capacity32 "omrmem_ensure_capacity32"*/
 	uintptr_t (*mem_ensure_capacity32)(struct OMRPortLibrary *portLibrary, uintptr_t byteAmount) ;
+	/** see @ref omrmem.c::omrmem_update_ram_usage "omrmem_update_ram_usage"*/
+	void (*mem_update_ram_usage)(struct OMRPortLibrary *portLibrary) ;
+	/** see @ref omrmem.c::omrmem_block_memory_allocation "omrmem_block_memory_allocation"*/
+	void (*mem_block_memory_allocation)(struct OMRPortLibrary *portLibrary) ;
+	/** see @ref omrmem.c::omrmem_unblock_memory_allocation "omrmem_unblock_memory_allocation"*/
+	void (*mem_unblock_memory_allocation)(struct OMRPortLibrary *portLibrary) ;
 	/** see @ref omrcpu.c::omrcpu_startup "omrcpu_startup"*/
 	int32_t (*cpu_startup)(struct OMRPortLibrary *portLibrary) ;
 	/** see @ref omrcpu.c::omrcpu_shutdown "omrcpu_shutdown"*/
@@ -1569,6 +1580,8 @@ typedef struct OMRPortLibrary {
 	int32_t (*sysinfo_cgroup_subsystem_iterator_next)(struct OMRPortLibrary *portLibrary, struct OMRCgroupMetricIteratorState *state, struct OMRCgroupMetricElement *metricElement);
 	/** see @ref omrsysinfo.c::omrsysinfo_cgroup_subsystem_iterator_destroy "omrsysinfo_cgroup_subsystem_iterator_destroy"*/
 	void (*sysinfo_cgroup_subsystem_iterator_destroy)(struct OMRPortLibrary *portLibrary, struct OMRCgroupMetricIteratorState *state);
+	/** see @ref omrsysinfo.c::omrsysinfo_get_bytes_in_ram "omrsysinfo_get_bytes_in_ram"*/
+	uintptr_t (*sysinfo_get_bytes_in_ram)(uintptr_t startAddr, uintptr_t endAddr);
 	/** see @ref omrport.c::omrport_init_library "omrport_init_library"*/
 	int32_t (*port_init_library)(struct OMRPortLibrary *portLibrary, uintptr_t size) ;
 	/** see @ref omrport.c::omrport_startup_library "omrport_startup_library"*/
@@ -1918,6 +1931,9 @@ extern J9_CFUNC int32_t omrport_getVersion(struct OMRPortLibrary *portLibrary);
 #define omrmem_allocate_memory32(param1, category) privateOmrPortLibrary->mem_allocate_memory32(privateOmrPortLibrary, (param1), OMR_GET_CALLSITE(), (category))
 #define omrmem_free_memory32(param1) privateOmrPortLibrary->mem_free_memory32(privateOmrPortLibrary, (param1))
 #define omrmem_ensure_capacity32(param1) privateOmrPortLibrary->mem_ensure_capacity32(privateOmrPortLibrary, (param1))
+#define omrmem_update_ram_usage() privateOmrPortLibrary->mem_update_ram_usage(privateOmrPortLibrary)
+#define omrmem_block_memory_allocation() privateOmrPortLibrary->mem_update_ram_usage(privateOmrPortLibrary)
+#define omrmem_unblock_memory_allocation() privateOmrPortLibrary->mem_update_ram_usage(privateOmrPortLibrary)
 #define omrcpu_startup() privateOmrPortLibrary->cpu_startup(privateOmrPortLibrary)
 #define omrcpu_shutdown() privateOmrPortLibrary->cpu_shutdown(privateOmrPortLibrary)
 #define omrcpu_flush_icache(param1,param2) privateOmrPortLibrary->cpu_flush_icache(privateOmrPortLibrary, (param1), (param2))
@@ -2033,6 +2049,7 @@ extern J9_CFUNC int32_t omrport_getVersion(struct OMRPortLibrary *portLibrary);
 #define omrsysinfo_cgroup_subsystem_iterator_metricKey(param1, param2) privateOmrPortLibrary->sysinfo_cgroup_subsystem_iterator_metricKey(privateOmrPortLibrary, param1, param2)
 #define omrsysinfo_cgroup_subsystem_iterator_next(param1, param2) privateOmrPortLibrary->sysinfo_cgroup_subsystem_iterator_next(privateOmrPortLibrary, param1, param2)
 #define omrsysinfo_cgroup_subsystem_iterator_destroy(param1) privateOmrPortLibrary->sysinfo_cgroup_subsystem_iterator_destroy(privateOmrPortLibrary, param1)
+#define omrsysinfo_get_bytes_in_ram(param1, param2) privateOmrPortLibrary->sysinfo_get_bytes_in_ram(privateOmrPortLibrary, param1, param2)
 #define omrintrospect_startup() privateOmrPortLibrary->introspect_startup(privateOmrPortLibrary)
 #define omrintrospect_shutdown() privateOmrPortLibrary->introspect_shutdown(privateOmrPortLibrary)
 #define omrintrospect_set_suspend_signal_offset(param1) privateOmrPortLibrary->introspect_set_suspend_signal_offset(privateOmrPortLibrary, param1)

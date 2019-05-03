@@ -136,6 +136,7 @@
 #include <sys/sysinfo.h>
 #include <sys/vfs.h>
 #include <sched.h>
+#include <sys/mman.h>
 #elif defined(OSX)
 #include <sys/sysctl.h>
 #endif /* defined(LINUX) && !defined(OMRZTPF) */
@@ -4794,3 +4795,46 @@ get_Dispatch_IstreamCount( void ) {
 	return (uintptr_t)numberOfIStreams;
 }
 #endif /* defined(OMRZTPF) */
+
+#define PAGE_IS_RESIDENT(value) ((value) & 0x1)
+#define ROUND_DOWN_TO(number, granularity) ((number) & ~(granularity-1))
+#define ROUND_UP_TO(number, granularity) (((number) + (granularity-1)) & ~(granularity-1))
+
+uintptr_t 
+omrsysinfo_get_bytes_in_ram(uintptr_t startAddr, uintptr_t endAddr)
+{
+	uintptr_t memoryCounter = 0;
+#if defined(LINUX)
+	intptr_t pageSize = getpagesize();
+	uintptr_t roundedStart = ROUND_DOWN_TO(startAddr, pageSize);
+	uintptr_t roundedEnd = ROUND_UP_TO(endAddr, pageSize);
+	size_t length = roundedEnd - roundedStart;
+	int32_t numPages = length/pageSize;
+	uint8_t vec[numPages];
+	int32_t rc = 0;
+
+	memset(vec, 0, numPages);
+	rc = mincore((void *)roundedStart, length, (unsigned char *)vec);
+	if (0 != rc) {
+		perror("mincore failed");
+	} else {
+		uintptr_t page = 0;
+
+		for (page = roundedStart; page < roundedEnd; page += pageSize) {
+			int32_t pageIndex = (page - roundedStart) / pageSize;
+
+			if (PAGE_IS_RESIDENT(vec[pageIndex])) {
+				memoryCounter += pageSize;
+			}
+		}
+		/* subtract the part not present in first and last page */
+		if (PAGE_IS_RESIDENT(vec[0])) {
+			memoryCounter -= (startAddr - roundedStart);
+		}
+		if (PAGE_IS_RESIDENT(vec[numPages - 1])) {
+			memoryCounter -= (roundedEnd - endAddr);
+		}
+	}
+#endif
+	return memoryCounter;
+}

@@ -1263,6 +1263,9 @@ omrthread_get_jvm_cpu_usage_info(J9ThreadsCpuUsage *cpuUsage);
 void
 omrthread_get_jvm_cpu_usage_info_error_recovery(void);
 
+void
+omrthread_update_memory_usage(void);
+
 /* ---------------- omrthreadattr.c ---------------- */
 
 /**

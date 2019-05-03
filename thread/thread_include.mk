@@ -264,6 +264,7 @@ define WRITE_COMMON_THREAD_EXPORTS
 @echo omrthread_get_jvm_cpu_usage_info_error_recovery >>$@
 @echo omrthread_get_category >>$@
 @echo omrthread_set_category >>$@
+@echo omrthread_update_memory_usage >>$@
 
 @# temp for the JIT
 @echo j9thread_self >>$@

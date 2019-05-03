@@ -349,6 +349,12 @@ extern J9_CFUNC void
 omrmem_free_memory32(struct OMRPortLibrary *portLibrary, void *memoryPointer);
 extern J9_CFUNC uintptr_t
 omrmem_ensure_capacity32(struct OMRPortLibrary *portLibrary, uintptr_t byteAmount);
+extern J9_CFUNC void
+omrmem_update_ram_usage(struct OMRPortLibrary *portLibrary);
+extern J9_CFUNC void
+omrmem_block_memory_allocation(struct OMRPortLibrary *portLibrary);
+extern J9_CFUNC void
+omrmem_unblock_memory_allocation(struct OMRPortLibrary *portLibrary);
 
 /* omrmemcategories.c */
 extern J9_CFUNC OMRMemCategory *
@@ -549,6 +555,8 @@ extern J9_CFUNC int32_t
 omrsysinfo_cgroup_subsystem_iterator_next(struct OMRPortLibrary *portLibrary, struct OMRCgroupMetricIteratorState *state, struct OMRCgroupMetricElement *metricElement);
 extern J9_CFUNC void
 omrsysinfo_cgroup_subsystem_iterator_destroy(struct OMRPortLibrary *portLibrary, struct OMRCgroupMetricIteratorState *state);
+extern J9_CFUNC uintptr_t 
+omrsysinfo_get_bytes_in_ram(uintptr_t startAddr, uintptr_t endAddr);
 
 /* J9SourceJ9Signal*/
 extern J9_CFUNC int32_t

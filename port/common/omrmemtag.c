@@ -54,6 +54,8 @@
 #endif /* (OMR_ENV_DATA64) */
 
 #include "omrmemtag_checks.h"
+#include "omrutilbase.h"
+#include "omrthread_generated.h"
 
 static void setTagSumCheck(J9MemTag *tag, uint32_t eyeCatcher);
 static void *wrapBlockAndSetTags(struct OMRPortLibrary *portLibrary, void *memoryPointer, uintptr_t byteAmount, const char *callSite, const uint32_t category);
@@ -64,6 +66,8 @@ typedef void *(*allocate_memory_func_t)(struct OMRPortLibrary *portLibrary, uint
 typedef void (*free_memory_func_t)(struct OMRPortLibrary *portLibrary, void *memoryPointer);
 typedef void (*advise_and_free_memory_func_t)(struct OMRPortLibrary *portLibrary, void *memoryPointer, uintptr_t memorySize);
 typedef void *(*reallocate_memory_func_t)(struct OMRPortLibrary *portLibrary, void *memoryPointer, uintptr_t byteAmount);
+
+static omrthread_monitor_t memoryListMonitor;
 
 static void
 setTagSumCheck(J9MemTag *tag, uint32_t eyeCatcher)
@@ -76,6 +80,26 @@ setTagSumCheck(J9MemTag *tag, uint32_t eyeCatcher)
 BOOLEAN
 isLocatedInIgnoredRegion(struct OMRPortLibrary *portLibrary, void *memoryPointer);
 
+#if 0
+static void
+displayMemoryList(struct OMRPortLibrary *portLibrary) {
+	J9MemTag *ptr = PPG_memoryBlockList;
+
+	if (getenv("DISPLAY_MEMORY_LIST")) {
+		fprintf(stdout, "PPG_memoryBlockList: %p\n", PPG_memoryBlockList);
+		fprintf(stdout, "list: ");
+		while (ptr != NULL) {
+			fprintf(stdout, "%p", ptr);
+			if (ptr->next != NULL) {
+				fprintf(stdout, "->");
+			}
+			ptr = ptr->next;
+		}
+		fprintf(stdout, "\n");
+	}
+}
+#endif /* 0 */
+
 /* A correctly constructed header/footer will sumcheck to zero */
 static void *
 wrapBlockAndSetTags(struct OMRPortLibrary *portLibrary, void *memoryPointer, uintptr_t byteAmount, const char *callSite, const uint32_t categoryCode)
@@ -83,6 +107,12 @@ wrapBlockAndSetTags(struct OMRPortLibrary *portLibrary, void *memoryPointer, uin
 	J9MemTag *headerTag, *footerTag;
 	uint8_t *padding;
 	OMRMemCategory *category;
+#if 0
+	omrthread_t self = omrthread_self();
+	int32_t unownedState = J9THREAD_MEMORY_LIST_LOCK_UNOWNED;
+	int32_t ownedState = J9THREAD_MEMORY_LIST_LOCK_OWNED;
+	uint32_t target = &self->memoryListLock;	
+#endif /* 0 */
 
 	/* Get the tags and adjust the memoryPointer */
 	headerTag = (J9MemTag *) memoryPointer;
@@ -104,6 +134,41 @@ wrapBlockAndSetTags(struct OMRPortLibrary *portLibrary, void *memoryPointer, uin
 #if !defined(OMR_ENV_DATA64)
 	memset(headerTag->padding, J9MEMTAG_PADDING_BYTE, sizeof(headerTag->padding));
 #endif
+
+	headerTag->next = headerTag->prev = NULL;
+
+#if 1
+	if (PPG_enableRamUsageTracking) {
+		omrthread_monitor_enter(memoryListMonitor);
+		if (PPG_memoryBlockList) {
+			PPG_memoryBlockList->prev = headerTag;
+			setTagSumCheck(PPG_memoryBlockList, J9MEMTAG_EYECATCHER_ALLOC_HEADER);
+			headerTag->next = PPG_memoryBlockList;
+		}
+		PPG_memoryBlockList = headerTag;
+		//displayMemoryList(portLibrary);
+		omrthread_monitor_exit(memoryListMonitor);
+	}
+#else
+	do {
+		while (*target == ownedState) { /* another thread is owning the lock */
+			yieldCPU();
+		}
+		rc = compareAndSwapU32(target, unownedState, ownedState);
+	} while (rc != unownedState);
+
+
+	if (self->memoryBlockList) {
+		J9MemTag *first = (J9MemTag *)self->memoryBlockList;
+		first->prev = headerTag;
+		setTagSumCheck(first, J9MEMTAG_EYECATCHER_ALLOC_HEADER);
+		headerTag->next = first;
+	}
+	self->memoryBlockList = (uintptr_t)headerTag;
+	
+	compareAndSwapU32(target, ownedState, unownedState);
+#endif /* 0 */
+
 	setTagSumCheck(headerTag, J9MEMTAG_EYECATCHER_ALLOC_HEADER);
 
 	footerTag->allocSize = byteAmount;
@@ -112,6 +177,7 @@ wrapBlockAndSetTags(struct OMRPortLibrary *portLibrary, void *memoryPointer, uin
 #if !defined(OMR_ENV_DATA64)
 	memset(footerTag->padding, J9MEMTAG_PADDING_BYTE, sizeof(footerTag->padding));
 #endif
+	footerTag->next = footerTag->prev = NULL;
 	setTagSumCheck(footerTag, J9MEMTAG_EYECATCHER_ALLOC_FOOTER);
 
 	return memoryPointer;
@@ -121,12 +187,17 @@ static void *
 unwrapBlockAndCheckTags(struct OMRPortLibrary *portLibrary, void *memoryPointer)
 {
 	J9MemTag *headerTag, *footerTag;
+	J9MemTag *before, *after;
+#if 0
+	omrthread_t self = omrthread_self();
+	int32_t unownedState = J9THREAD_MEMORY_LIST_LOCK_UNOWNED;
+	int32_t ownedState = J9THREAD_MEMORY_LIST_LOCK_OWNED;
+	uint32_t target = &self->memoryListLock;	
+#endif /* 0 */
 
 	/* get the tags */
 	headerTag = omrmem_get_header_tag(memoryPointer);
 	footerTag = omrmem_get_footer_tag(headerTag);
-
-	/* Check the tags and update only if not corrupted*/
 	if ((checkTagSumCheck(headerTag, J9MEMTAG_EYECATCHER_ALLOC_HEADER) == 0)
 		&& (checkTagSumCheck(footerTag, J9MEMTAG_EYECATCHER_ALLOC_FOOTER) == 0)
 		&& (checkPadding(headerTag) == 0)) {
@@ -145,6 +216,57 @@ unwrapBlockAndCheckTags(struct OMRPortLibrary *portLibrary, void *memoryPointer)
 		Trc_Assert_PRT_memory_corruption_detected(memoryCorruptionDetected);
 	}
 
+#if 1
+	/* disconnect the block from the list */
+	if (PPG_enableRamUsageTracking) {
+		omrthread_monitor_enter(memoryListMonitor);
+		/* Check the tags and update only if not corrupted*/
+		if (checkTagSumCheck(headerTag, J9MEMTAG_EYECATCHER_ALLOC_HEADER) != 0) {
+			fprintf(stdout, "checkTagSumCheck(headerTag) failed\n");
+		}
+		if (checkTagSumCheck(footerTag, J9MEMTAG_EYECATCHER_ALLOC_FOOTER) != 0) {
+			fprintf(stdout, "checkTagSumCheck(footerTag) failed\n");
+		}
+		if (checkPadding(headerTag) != 0) {
+			fprintf(stdout, "checkPadding failed\n");
+		}
+	}
+#else
+	do {
+		while (*target == ownedState) { /* another thread is owning the lock */
+			yieldCPU();
+		}
+		compareAndSwapU32(target, unownedState, ownedState);
+	} while (rc != unownedState);
+#endif /* 0 */
+
+	before = headerTag->prev;
+	after = headerTag->next;
+
+	if (before != NULL) {
+		before->next = headerTag->next;
+		setTagSumCheck(before, J9MEMTAG_EYECATCHER_ALLOC_HEADER);
+	}
+	if (after != NULL) {
+		after->prev = headerTag->prev;
+		setTagSumCheck(after, J9MEMTAG_EYECATCHER_ALLOC_HEADER);
+	}
+#if 1
+	if (PPG_enableRamUsageTracking) {
+		if (headerTag == PPG_memoryBlockList) {
+			PPG_memoryBlockList = after;
+		}
+
+		omrthread_monitor_exit(memoryListMonitor);
+	}
+#else
+	if (headerTag == (J9MemTag *)self->memoryBlockList) {
+		self->memoryBlockList = (uintptr_t)after;
+	}
+	headerTag->next = headerTag->prev = NULL;
+
+	compareAndSwapU32(target, ownedState, unownedState);
+#endif
 	return headerTag;
 }
 
@@ -325,6 +447,11 @@ omrmem_shutdown(struct OMRPortLibrary *portLibrary)
 	shutdown_memory32(portLibrary);
 #endif /* OMR_ENV_DATA64 */
 
+	if (memoryListMonitor != NULL) {
+		omrthread_monitor_destroy(memoryListMonitor);
+		memoryListMonitor = NULL;
+	}
+
 	if (NULL != portLibrary->portGlobals) {
 		omrmem_shutdown_basic(portLibrary);
 		portLibrary->portGlobals = NULL;
@@ -379,7 +506,11 @@ omrmem_startup(struct OMRPortLibrary *portLibrary, uintptr_t portGlobalSize)
 		return OMRPORT_ERROR_STARTUP_MEM;
 	}
 #endif /* OMR_ENV_DATA64 */
-
+#if defined(LINUX)
+	omrthread_monitor_init_with_name(&memoryListMonitor, 0, "native memory list monitor");
+	PPG_memoryBlockList = NULL;
+	PPG_ramUsageTrackingSupported = TRUE;
+#endif /* defined(LINUX) */
 	return 0;
 }
 
@@ -509,3 +640,43 @@ omrmem_ensure_capacity32(struct OMRPortLibrary *portLibrary, uintptr_t byteAmoun
 	return retValue;
 }
 
+
+void
+omrmem_update_ram_usage(struct OMRPortLibrary *portLibrary) {
+	if (PPG_enableRamUsageTracking) {
+		J9MemTag *memoryBlock = NULL;
+
+		portLibrary->mem_block_memory_allocation(portLibrary);
+
+		memoryBlock = PPG_memoryBlockList;
+		while (NULL != memoryBlock) {
+			uintptr_t startAddr = (uintptr_t)memoryBlock;
+			uintptr_t endAddr = startAddr + ROUNDED_BYTE_AMOUNT(memoryBlock->allocSize);
+			uintptr_t memoryInRam = portLibrary->sysinfo_get_bytes_in_ram(startAddr, endAddr);
+
+			memoryBlock->category->bytesInRam += memoryInRam;
+
+			memoryBlock = memoryBlock->next;
+		}
+
+		portLibrary->mem_unblock_memory_allocation(portLibrary);
+	}
+}
+
+void
+omrmem_block_memory_allocation(struct OMRPortLibrary *portLibrary) {
+	if (PPG_enableRamUsageTracking) {
+		if (memoryListMonitor) {
+			omrthread_monitor_enter(memoryListMonitor);
+		}
+	}
+}
+
+void
+omrmem_unblock_memory_allocation(struct OMRPortLibrary *portLibrary) {
+	if (PPG_enableRamUsageTracking) {
+		if (memoryListMonitor) {
+			omrthread_monitor_exit(memoryListMonitor);
+		}
+	}
+}

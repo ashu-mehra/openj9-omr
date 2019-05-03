@@ -156,6 +156,7 @@ omr_add_exports(j9thr_obj
 	omrthread_get_jvm_cpu_usage_info_error_recovery
 	omrthread_get_category
 	omrthread_set_category
+	omrthread_update_memory_usage	
 
 	# temp for the JIT
 	j9thread_self

@@ -90,6 +90,9 @@ typedef struct OMRPortPlatformGlobals {
 	OMRCgroupEntry *cgroupEntryList; /**< head of the circular linked list, each element contains information about cgroup of the process for a subsystem */
 	BOOLEAN syscallNotAllowed; /**< Assigned True if the mempolicy syscall is failed due to security opts (Can be seen in case of docker) */
 #endif /* defined(LINUX) */
+	BOOLEAN ramUsageTrackingSupported;
+	BOOLEAN enableRamUsageTracking;
+	struct J9MemTag *memoryBlockList;
 } OMRPortPlatformGlobals;
 
 
@@ -137,6 +140,9 @@ typedef struct OMRPortPlatformGlobals {
 #define PPG_cgroupEntryList (portLibrary->portGlobals->platformGlobals.cgroupEntryList)
 #define PPG_numaSyscallNotAllowed (portLibrary->portGlobals->platformGlobals.syscallNotAllowed)
 #endif /* defined(LINUX) */
+#define PPG_ramUsageTrackingSupported (portLibrary->portGlobals->platformGlobals.ramUsageTrackingSupported)
+#define PPG_enableRamUsageTracking (portLibrary->portGlobals->platformGlobals.enableRamUsageTracking)
+#define PPG_memoryBlockList (portLibrary->portGlobals->platformGlobals.memoryBlockList)
 
 #endif /* omrportpg_h */
 

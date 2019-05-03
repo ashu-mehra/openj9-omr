@@ -160,6 +160,9 @@ static OMRPortLibrary MasterPortLibraryTable = {
 	omrmem_free_memory, /* mem_free_memory */
 #endif
 	omrmem_ensure_capacity32, /* mem_ensure_capacity32 */
+	omrmem_update_ram_usage, /* mem_update_ram_usage */
+	omrmem_block_memory_allocation, /* mem_block_memory_allocation */
+	omrmem_unblock_memory_allocation, /* mem_unblock_memory_allocation */
 	omrcpu_startup, /* cpu_startup */
 	omrcpu_shutdown, /* cpu_shutdown */
 	omrcpu_flush_icache, /* cpu_flush_icache */
@@ -279,6 +282,7 @@ static OMRPortLibrary MasterPortLibraryTable = {
 	omrsysinfo_cgroup_subsystem_iterator_metricKey, /* sysinfo_cgroup_subsystem_iterator_metricKey */
 	omrsysinfo_cgroup_subsystem_iterator_next, /* sysinfo_cgroup_subsystem_iterator_next */
 	omrsysinfo_cgroup_subsystem_iterator_destroy, /* sysinfo_cgroup_subsystem_iterator_destroy */
+	omrsysinfo_get_bytes_in_ram, /* sysinfo_get_bytes_in_ram */
 	omrport_init_library, /* port_init_library */
 	omrport_startup_library, /* port_startup_library */
 	omrport_create_library, /* port_create_library */
