@@ -219,7 +219,7 @@ OMR::Compilation::Compilation(
    _debug(0),
    _knownObjectTable(NULL),
    _omrVMThread(omrVMThread),
-   _allocator(TRCS2MemoryAllocator(m)),
+   _allocator(heapMemoryRegion),
    _method(compilee),
    _arenaAllocator(TR::Allocator(self()->allocator("Arena"))),
    _aliasRegion(heapMemoryRegion),

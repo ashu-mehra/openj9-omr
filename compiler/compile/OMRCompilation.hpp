@@ -1137,7 +1137,7 @@ protected:
       AssumptionFlagMask                = 0x0005F00,
       };
 
-   TR::ThreadLocalAllocator _allocator;
+   TR::Region &_allocator;
    TR::ResolvedMethodSymbol *_methodSymbol;
 
 private:

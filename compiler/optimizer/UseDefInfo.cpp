@@ -1691,7 +1691,6 @@ void TR_UseDefInfo::insertData(TR::Block *block, TR::Node *node,TR::Node *parent
          aux._defsForSymbol[j]->set(k);
          aux._expandedAtoms[k] = std::make_pair(node, treeTop);
          }
-      TR::GlobalSparseBitVector *mustKill = NULL;
       TR::Symbol *callSym = NULL;
       TR::Method *callMethod = NULL;
 

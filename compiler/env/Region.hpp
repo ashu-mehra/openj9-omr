@@ -113,6 +113,8 @@ public:
 
    void deallocate(void * allocation, size_t = 0) throw();
 
+   void * reallocate(size_t newsize, void *pointer, size_t size);
+
    friend bool operator ==(const TR::Region &lhs, const TR::Region &rhs)
       {
       return &lhs == &rhs;
@@ -128,7 +130,6 @@ public:
       {
       return TR::typed_allocator<T, Region& >(*this);
       }
-
    size_t bytesAllocated() { return _bytesAllocated; }
    static size_t initialSize() { return INITIAL_SEGMENT_SIZE; }
 private:
