@@ -112,6 +112,8 @@ public:
    template <typename T> inline T& create(const T& prototype);
 
    void deallocate(void * allocation, size_t = 0) throw();
+   
+   void *reallocate(size_t newsize, void *pointer, size_t size);
 
    friend bool operator ==(const TR::Region &lhs, const TR::Region &rhs)
       {
