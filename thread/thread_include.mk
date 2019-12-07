@@ -232,6 +232,7 @@ define WRITE_COMMON_THREAD_EXPORTS
 @echo omrthread_attr_set_priority >>$@
 @echo omrthread_attr_set_stacksize >>$@
 @echo omrthread_attr_set_category >>$@
+@echo omrthread_attr_set_detachstate >>$@
 
 @# for builder use only
 @echo omrthread_monitor_lock >>$@
