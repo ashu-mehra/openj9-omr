@@ -270,6 +270,9 @@ omrheap_allocate(struct OMRPortLibrary *portLibrary, struct J9Heap *heap, uintpt
 		}
 	}
 	Trc_PRT_heap_port_omrheap_allocate_exit(candidateBlock);
+	if (getenv("OMRPORT_TRACE") != NULL) {
+		fprintf(stdout, "omrheap_allocate> exit returned memory = %p size = %zu\n", candidateBlock, newSize * sizeof(uint64_t));
+	}
 	return candidateBlock;
 }
 
@@ -296,7 +299,6 @@ omrheap_free(struct OMRPortLibrary *portLibrary, struct J9Heap *heap, void *addr
 	int64_t *baseSlot = (int64_t *)heap;
 
 	Trc_PRT_heap_port_omrheap_free_entry(heap, address);
-
 	if (NULL == address) {
 		Trc_PRT_heap_port_omrheap_free_null_memptr_exit();
 		return;
@@ -309,6 +311,10 @@ omrheap_free(struct OMRPortLibrary *portLibrary, struct J9Heap *heap, void *addr
 
 	/* negate the negative value to indicate free block */
 	thisBlockSize = -thisBlockTopPadding[0];
+
+	if (getenv("OMRPORT_TRACE") != NULL) {
+		fprintf(stdout, "omrheap_free> free memory heap = %p address = %p size = %zu\n", heap, address, thisBlockSize * sizeof(uint64_t));
+	}
 
 	blockTopSlot = GET_SLOT_NUMBER_FROM(heap, thisBlockTopPadding);
 
