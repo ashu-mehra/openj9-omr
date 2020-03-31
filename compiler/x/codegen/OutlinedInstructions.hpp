@@ -166,7 +166,7 @@ class TR_OutlinedInstructionsGenerator
    /**
       @brief Switch back to mainline code generation.
    */
-   ~TR_OutlinedInstructionsGenerator();
+   ~TR_OutlinedInstructionsGenerator() noexcept(false);
    /**
       @brief Obtain the underlying TR_OutlinedInstructions.
    */

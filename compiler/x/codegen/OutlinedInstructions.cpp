@@ -379,7 +379,7 @@ TR_OutlinedInstructionsGenerator::TR_OutlinedInstructionsGenerator(TR::LabelSymb
    generateLabelInstruction(LABEL, node, entryLabel, cg);
    }
 
-TR_OutlinedInstructionsGenerator::~TR_OutlinedInstructionsGenerator()
+TR_OutlinedInstructionsGenerator::~TR_OutlinedInstructionsGenerator() noexcept(false)
    {
    if (!std::uncaught_exception())
       {
