@@ -481,6 +481,7 @@ const char *TR::ExternalRelocation::_externalRelocationTargetKindNames[TR_NumExt
    "TR_MethodCallAddress (99)",
    "TR_DiscontiguousSymbolFromManager (100)",
    "TR_ResolvedTrampolines (101)",
+   "R_BlockFrequency (102)",
    };
 
 uintptr_t TR::ExternalRelocation::_globalValueList[TR_NumGlobalValueItems] =

@@ -2191,6 +2191,14 @@ OMR::Power::CodeGenerator::addMetaDataForLoadAddressConstantFixed(
          TR::DebugCounter::generateRelocation(comp, firstInstruction, node, counter, seqKind);
          return;
          }
+
+      case TR_BlockFrequency:
+	 {
+         TR::StaticSymbol *staticSym = node->getSymbolReference()->getStaticSymbol();
+         TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
+         relo = new (self()->trHeapMemory()) TR::BeforeBinaryEncodingExternalRelocation(firstInstruction, (uint8_t *)staticSym->getStaticAddress(), TR_BlockFrequency, self());
+         break;
+         }
       }
 
    if (comp->getOption(TR_UseSymbolValidationManager) && !relo)
@@ -2345,6 +2353,17 @@ OMR::Power::CodeGenerator::addMetaDataForLoadIntConstantFixed(
          }
 
       TR::DebugCounter::generateRelocation(comp, firstInstruction, secondInstruction, node, counter, orderedPairSequence2);
+      }
+   else if (typeAddress == TR_BlockFrequency)
+      {
+      TR::StaticSymbol *staticSym = node->getSymbolReference()->getStaticSymbol();
+      TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
+      TR::Relocation *relocation = new (self()->trHeapMemory()) TR::ExternalOrderedPair32BitRelocation((uint8_t *)firstInstruction,
+                                                                                          (uint8_t *)secondInstruction,
+                                                                                          (uint8_t *)staticSym->getStaticAddress(),
+                                                                                          TR_BlockFrequency, self());
+      self()->addExternalRelocation(relocation, __FILE__, __LINE__, node);
+      break;
       }
    else if (typeAddress != -1)
       {

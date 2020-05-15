@@ -505,6 +505,13 @@ OMR::X86::AMD64::MemoryReference::addMetaDataForCodeAddressWithLoad(
                                               containingInstruction->getNode(),
                                               counter);
          }
+      else if (sr.getSymbol()->isBlockFrequency())
+         {
+         TR::StaticSymbol *staticSym = sr.getSymbol()->getStaticSymbol();
+         TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
+         TR::Relocation *relocation = new (cg->trHeapMemory()) TR::ExternalRelocation(displacementLocation, (uint8_t *)staticSym->getStaticAddress(), TR_BlockFrequency, cg);
+         cg->addExternalRelocation(relocation, __FILE__, __LINE__, containingInstruction->getNode());
+         }
       }
    else
       {

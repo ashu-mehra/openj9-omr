@@ -276,6 +276,9 @@ public:
    void setIsDebugCounter()                 { _flags2.set(DebugCounter); }
    bool isDebugCounter()                    { return _flags2.testAny(DebugCounter); }
 
+   void setIsBlockFrequency()               { _flags2.set(BlockFrequency); }
+   bool isBlockFrequency()                  { return _flags2.testAny(BlockFrequency); }
+
    inline bool isNamed();
 
    // flag methods specific to Autos
@@ -554,6 +557,7 @@ public:
       ImmutableField            = 0x00000400,
       PendingPush               = 0x00000800,
       ConstantDynamic           = 0x00001000,
+      BlockFrequency            = 0x00002000,
       };
 
 protected:

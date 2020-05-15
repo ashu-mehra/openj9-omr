@@ -251,6 +251,13 @@ TR::S390ConstantDataSnippet::addMetaDataForCodeAddress(uint8_t *cursor)
          }
          break;
 
+      case TR_BlockFrequency:
+         {
+         TR::StaticSymbol *staticSymbol = getSymbolReference()->getSymbol()->getStaticAddress();
+         TR_ASSERT(staticSymbol, "Expected static symbol for block frequency\n");
+         relo = new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor, (uint8_t *)staticSymbol->getStaticAddress(), TR_BlockFrequency, cg());
+         cg()->addExternalRelocation(relo, __FILE__, __LINE__, getNode());
+         }
       default:
          TR_ASSERT( 0,"relocation type not handled yet");
       }

@@ -6294,6 +6294,10 @@ OMR::Z::TreeEvaluator::checkAndSetMemRefDataSnippetRelocationType(TR::Node * nod
       {
       reloType = TR_DataAddress;
       }
+   else if (cg->needRelocationsForStatics() && isStatic && node->getSymbol()->isBlockFrequency())
+      {
+      reloType = TR_BlockFrequency;
+      } 
 
    if (reloType != 0)
       {
@@ -9466,6 +9470,12 @@ OMR::Z::TreeEvaluator::loadaddrEvaluator(TR::Node * node, TR::CodeGenerator * cg
                cursor = generateRegLitRefInstruction(cg, TR::InstOpCode::getLoadOpCode(), node, targetRegister,
                                                         (uintptr_t) node->getSymbol()->getStaticSymbol()->getStaticAddress(),
                                                         TR_DataAddress, NULL, NULL, NULL);
+               }
+            else if (cg->needRelocationsForStatics() && sym && sym->isStatic() && sym->isBlockFrequency())
+               {
+               cursor = generateRegLitRefInstruction(cg, TR::InstOpCode::getLoadOpCode(), node, targetRegister,
+                                                        (uintptr_t) node->getSymbol()->getStaticSymbol()->getStaticAddress(),
+                                                        TR_BlockFrequency, NULL, NULL, NULL);
                }
             else if (comp->compileRelocatableCode() && node->getSymbol()->isDebugCounter())
                {
