@@ -279,6 +279,9 @@ public:
    void setIsBlockFrequency()               { _flags2.set(BlockFrequency); }
    bool isBlockFrequency()                  { return _flags2.testAny(BlockFrequency); }
 
+   void setIsRecompQueuedFlag()             { _flags2.set(RecompQueuedFlag); }
+   bool isRecompQueuedFlag()                { return _flags2.testAny(RecompQueuedFlag); }
+
    inline bool isNamed();
 
    // flag methods specific to Autos
@@ -558,6 +561,7 @@ public:
       PendingPush               = 0x00000800,
       ConstantDynamic           = 0x00001000,
       BlockFrequency            = 0x00002000,
+      RecompQueuedFlag          = 0x00004000,
       };
 
 protected:

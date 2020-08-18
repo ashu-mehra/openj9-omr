@@ -1195,6 +1195,12 @@ TR::X86ImmSymInstruction::addMetaDataForCodeAddress(uint8_t *cursor)
                TR::Relocation *relocation = new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor, (uint8_t *)staticSym->getStaticAddress(), TR_BlockFrequency, cg());
                cg()->addExternalRelocation(relocation, __FILE__, __LINE__, getNode());
                }
+            else if (sym->isRecompQueuedFlag())
+               {
+               TR_ASSERT(staticSym, "Expected static symbol for queued for recompilation flag\n");
+               TR::Relocation *relocation = new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor, NULL, TR_RecompQueuedFlag, cg());
+               cg()->addExternalRelocation(relocation, __FILE__, __LINE__, getNode());
+               }
             else
                {
                cg()->addExternalRelocation(new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor,
@@ -1777,6 +1783,15 @@ TR::X86RegImmSymInstruction::addMetaDataForCodeAddress(uint8_t *cursor)
          }
          break;
 
+      case TR_RecompQueuedFlag:
+         {
+         TR::StaticSymbol *staticSym = symbol->getStaticSymbol();
+         TR_ASSERT(staticSym, "Expected static symbol for queued for recompilation flag\n");
+         TR::Relocation *relocation = new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor, NULL, TR_RecompQueuedFlag, cg());
+         cg()->addExternalRelocation(relocation, __FILE__, __LINE__, getNode());
+         }
+         break;
+
       default:
          TR_ASSERT(0, "invalid relocation kind for TR::X86RegImmSymInstruction");
       }
@@ -2197,6 +2212,13 @@ TR::X86MemImmSymInstruction::addMetaDataForCodeAddress(uint8_t *cursor)
       TR::StaticSymbol *staticSym = symbol->getStaticSymbol();
       TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
       TR::Relocation *relocation = new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor, (uint8_t *)staticSym->getStaticAddress(), TR_BlockFrequency, cg());
+      cg()->addExternalRelocation(relocation, __FILE__, __LINE__, getNode());
+      }
+   else if (symbol->isRecompQueuedFlag())
+      {
+      TR::StaticSymbol *staticSym = symbol->getStaticSymbol();
+      TR_ASSERT(staticSym, "Expected static symbol for queued for recompilation flag\n");
+      TR::Relocation *relocation = new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor, NULL, TR_RecompQueuedFlag, cg());
       cg()->addExternalRelocation(relocation, __FILE__, __LINE__, getNode());
       }
    else
@@ -2896,6 +2918,14 @@ TR::AMD64RegImm64SymInstruction::addMetaDataForCodeAddress(uint8_t *cursor)
             TR::StaticSymbol *staticSym = getSymbolReference()->getSymbol()->getStaticSymbol();
             TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
             TR::Relocation *relocation = new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor, (uint8_t *)staticSym->getStaticAddress(), TR_BlockFrequency, cg());
+            cg()->addExternalRelocation(relocation, __FILE__, __LINE__, getNode());
+            }
+            break;
+         case TR_RecompQueuedFlag:
+            {
+            TR::StaticSymbol *staticSym = getSymbolReference()->getSymbol()->getStaticSymbol();
+            TR_ASSERT(staticSym, "Expected static symbol for queued for recompilation flag\n");
+            TR::Relocation *relocation = new (cg()->trHeapMemory()) TR::ExternalRelocation(cursor, NULL, TR_RecompQueuedFlag, cg());
             cg()->addExternalRelocation(relocation, __FILE__, __LINE__, getNode());
             }
             break;
