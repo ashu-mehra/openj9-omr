@@ -1667,7 +1667,14 @@ struct DescendingSortX86DataSnippetByDataSize
 void OMR::X86::CodeGenerator::doBinaryEncoding()
    {
    LexicalTimer pt1("code generation", self()->comp()->phaseTimer());
+   bool enableLogging = true;
 
+   if (!strcmp(self()->comp()->signature(), "com/ibm/jit/JITHelpers.byteToCharUnsigned(B)C"))
+      {
+      fprintf(stdout, "doBinaryEncoding> method: %s\n", self()->comp()->signature());
+      enableLogging = false;
+      }
+  
    // Generate fixup code for the interpreter entry point right before PROCENTRY
    //
    TR::Instruction * procEntryInstruction = self()->getFirstInstruction();

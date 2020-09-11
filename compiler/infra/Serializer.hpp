@@ -101,6 +101,7 @@ class TR_Serializer
       {
       static_assert(std::is_trivially_copyable<T>::value, "Cannot serialize non-trivially copyable types");
       TR_ASSERT_FATAL((_current + sizeof(T)) <= _bufferEnd, "Attempting to write beyond the buffer size, _current=%p, size=%zu, _bufferEnd=%p\n", _current, sizeof(T), _bufferEnd);
+      //fprintf(stdout, "Serializer::write> _current: %p, data size: %zu\n", _current, sizeof(T));
       memcpy(_current, &t, sizeof(T));
       _current += sizeof(T);
       }
@@ -135,6 +136,7 @@ class TR_Serializer
       static_assert(std::is_trivially_copyable<T>::value, "Cannot serialize non-trivially copyable types");
       uint32_t size = sizeof(T) * count;
       TR_ASSERT_FATAL((_current + size) <= _bufferEnd, "Attempting to write beyond the buffer size, _current=%p, size=%zu, _bufferEnd=%p\n", _current, size, _bufferEnd);
+      //fprintf(stdout, "Serializer::writeArray> _current: %p, data size: %zu\n", _current, size);
       memcpy(_current, t, size);
       _current += size;
       }
@@ -151,6 +153,7 @@ class TR_Serializer
       {
       static_assert(std::is_trivially_copyable<T>::value, "Cannot read non-trivially copyable types");
       TR_ASSERT_FATAL((_current + sizeof(T)) <= _bufferEnd, "Attempting to read beyond the buffer size, _current=%p, size=%zu, _bufferEnd=%p\n", _current, sizeof(T), _bufferEnd);
+      //fprintf(stdout, "Serializer::read> _current: %p, data size: %zu\n", _current, sizeof(T));
       uint8_t *ptr = _current;
       _current += sizeof(T);
       return *(reinterpret_cast<T*>(ptr));
@@ -168,6 +171,7 @@ class TR_Serializer
       {
       static_assert(std::is_trivially_copyable<T>::value, "Cannot read non-trivially copyable types");
       TR_ASSERT_FATAL((_current + sizeof(T)) <= _bufferEnd, "Attempting to read beyond the buffer size, _current=%p, size=%zu, _bufferEnd=%p\n", _current, sizeof(T), _bufferEnd);
+      //fprintf(stdout, "Serializer::read> _current: %p, data size: %zu\n", _current, sizeof(T));
       memcpy(&t, _current, sizeof(T));
       _current += sizeof(T);
       }
@@ -202,6 +206,7 @@ class TR_Serializer
       static_assert(std::is_trivially_copyable<T>::value, "Cannot read non-trivially copyable types");
       uint32_t size = (sizeof(T) * count);
       TR_ASSERT_FATAL((_current + size) <= _bufferEnd, "Attempting to read beyond the buffer size, _current=%p, size=%zu, _bufferEnd=%p\n", _current, size, _bufferEnd);
+      //fprintf(stdout, "Serializer::read> _current: %p, data size: %zu\n", _current, size);
       memcpy(t, _current, size);
       _current += size;
       }
@@ -215,6 +220,7 @@ class TR_Serializer
       {
       uintptr_t ptr = *(uintptr_t *)_current;
       TR_ASSERT_FATAL((_current + sizeof(ptr) <= _bufferEnd), "Attempting to read beyond the buffer size, _current=%p, size=%zu, _bufferEnd=%p\n", _current, sizeof(ptr), _bufferEnd);
+      //fprintf(stdout, "Serializer::nextDataNotNullPointer> _current: %p\n", _current);
       _current += sizeof(ptr);
       if (ptr)
          {

@@ -1154,6 +1154,7 @@ public:
    bool needRelocationsForStatics();
    bool needRelocationsForBodyInfoData();
    bool needRelocationsForPersistentInfoData();
+   bool needRelocationsForPersistentProfileInfoData();
    bool needRelocationsForLookupEvaluationData();
    bool needRelocationsForCurrentMethodPC();
 

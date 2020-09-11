@@ -185,7 +185,8 @@ void OMR::X86::AMD64::MemoryReference::finishInitialization(
             (cg->needRelocationsForStatics()            ||
              cg->needClassAndMethodPointerRelocations() ||
              cg->needRelocationsForBodyInfoData()       ||
-             cg->needRelocationsForPersistentInfoData()))
+             cg->needRelocationsForPersistentInfoData() ||
+             cg->needRelocationsForPersistentProfileInfoData()))
       {
       mightNeedAddressRegister = true;
       }
@@ -290,6 +291,8 @@ bool OMR::X86::AMD64::MemoryReference::needsAddressLoadInstruction(intptr_t next
    else if (sr.getSymbol() && sr.getSymbol()->isRecompilationCounter() && cg->needRelocationsForBodyInfoData())
       return true;
    else if (sr.getSymbol() && sr.getSymbol()->isCountForRecompile() && cg->needRelocationsForPersistentInfoData())
+      return true;
+   else if (sr.getSymbol() && (sr.getSymbol()->isBlockFrequency() || sr.getSymbol()->isRecompQueuedFlag()) && cg->needRelocationsForPersistentProfileInfoData())
       return true;
    else if (cg->comp()->getOption(TR_EnableHCR) && sr.getSymbol() && sr.getSymbol()->isClassObject())
       return true; // If a class gets replaced, it may no longer fit in an immediate
@@ -409,6 +412,13 @@ OMR::X86::AMD64::MemoryReference::addMetaDataForCodeAddressWithLoad(
       TR::SymbolReference *srCopy)
    {
    intptr_t displacement = self()->getDisplacement();
+   bool enableLogging = false;
+
+   if (!strcmp("com/ibm/jit/JITHelpers.byteToCharUnsigned(B)C", cg->comp()->signature()))
+      enableLogging = true;
+
+   if (enableLogging)
+      fprintf(stdout, "In OMR::X86::AMD64::MemoryReference::addMetaDataForCodeAddressWithLoad\n");
 
    if (_symbolReference.getSymbol())
       {
@@ -507,10 +517,15 @@ OMR::X86::AMD64::MemoryReference::addMetaDataForCodeAddressWithLoad(
          }
       else if (sr.getSymbol()->isBlockFrequency())
          {
-         TR::StaticSymbol *staticSym = sr.getSymbol()->getStaticSymbol();
-         TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
-         TR::Relocation *relocation = new (cg->trHeapMemory()) TR::ExternalRelocation(displacementLocation, (uint8_t *)staticSym->getStaticAddress(), TR_BlockFrequency, cg);
-         cg->addExternalRelocation(relocation, __FILE__, __LINE__, containingInstruction->getNode());
+         if (cg->needRelocationsForPersistentProfileInfoData())
+            {
+            fprintf(stdout, "OMR::X86::AMD64::MemoryReference::addMetaDataForCodeAddressWithLoad> Adding relocation record for BlockFrequency\n");
+
+            TR::StaticSymbol *staticSym = sr.getSymbol()->getStaticSymbol();
+            TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
+            TR::Relocation *relocation = new (cg->trHeapMemory()) TR::ExternalRelocation(displacementLocation, (uint8_t *)staticSym->getStaticAddress(), TR_BlockFrequency, cg);
+            cg->addExternalRelocation(relocation, __FILE__, __LINE__, containingInstruction->getNode());
+            }
          }
       }
    else
@@ -557,6 +572,10 @@ OMR::X86::AMD64::MemoryReference::generateBinaryEncoding(
    TR::Compilation *comp = cg->comp();
    TR::SymbolReference &sr = self()->getSymbolReference();
    intptr_t displacement = self()->getDisplacement();
+   bool enableLogging = false;
+
+   if (!strcmp("com/ibm/jit/JITHelpers.byteToCharUnsigned(B)C", cg->comp()->signature()))
+      enableLogging = true;
 
    if (comp->getOption(TR_TraceCG))
       {
@@ -645,6 +664,9 @@ OMR::X86::AMD64::MemoryReference::generateBinaryEncoding(
             cg
             );
          }
+
+      if (enableLogging)
+         fprintf(stdout, "Calling addMetaDataForCodeAddressWithLoad\n");
 
       self()->addMetaDataForCodeAddressWithLoad(displacementLocation, containingInstruction, cg, symRef);
 

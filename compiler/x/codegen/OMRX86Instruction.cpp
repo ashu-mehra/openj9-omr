@@ -3916,6 +3916,7 @@ TR::AMD64RegImm64SymInstruction::AMD64RegImm64SymInstruction(TR::Instruction    
 void
 TR::AMD64RegImm64SymInstruction::autoSetReloKind()
    {
+   TR::Compilation *comp = cg()->comp();
    TR::Symbol *symbol = getSymbolReference()->getSymbol();
    if (symbol->isDebugCounter())
       setReloKind(TR_DebugCounter);

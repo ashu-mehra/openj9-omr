@@ -2863,6 +2863,21 @@ OMR::X86::TreeEvaluator::performCall(
 
    TR::Register *returnRegister;
    TR::Linkage *linkage = cg->getLinkage(callSymbol->getLinkageConvention());
+   if (!strcmp(cg->comp()->signature(), "SimpleSortObject.simpleSort([LUtil/ValueArray;)V"))
+      {
+      fprintf(stdout, "performCall> method: %s, hotness: %s, node: %p, node number: %d, symRefNumber: %d, linkage: %p\n",
+            cg->comp()->signature(), cg->comp()->getHotnessName(cg->comp()->getMethodHotness()), node, node->getGlobalIndex(), symRef->getReferenceNumber(), linkage);
+      }
+   if (!strcmp(cg->comp()->signature(), "com/ibm/jit/JITHelpers.byteToCharUnsigned(B)C"))
+      {
+      fprintf(stdout, "performCall> method: %s, hotness: %s, node: %p, node number: %d, symRefNumber: %d, linkage: %p\n",
+            cg->comp()->signature(), cg->comp()->getHotnessName(cg->comp()->getMethodHotness()), node, node->getGlobalIndex(), symRef->getReferenceNumber(), linkage);
+      }
+   if (!strcmp(cg->comp()->signature(), "Util/ValueArray.<init>(III)V"))
+      {
+      fprintf(stdout, "performCall> method: %s, hotness: %s, node: %p, node number: %d, symRefNumber: %d, linkage: %p\n",
+            cg->comp()->signature(), cg->comp()->getHotnessName(cg->comp()->getMethodHotness()), node, node->getGlobalIndex(), symRef->getReferenceNumber(), linkage);
+      }
    if (isIndirect)
       returnRegister = linkage->buildIndirectDispatch(node);
    else

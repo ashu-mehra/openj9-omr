@@ -420,14 +420,12 @@ ifneq (,$(findstring shared,$(ARTIFACT_TYPE)))
       define LINK_C_SHARED_COMMAND
         $(CCLINKSHARED) -o $@ $(OBJECTS) $(LDFLAGS) $(MODULE_LDFLAGS) $(GLOBAL_LDFLAGS)
         $(OBJCOPY) --only-keep-debug $@ $(@:$(SOLIBEXT)=.debuginfo)
-        $(OBJCOPY) --strip-debug $@
         $(OBJCOPY) --add-gnu-debuglink=$(@:$(SOLIBEXT)=.debuginfo) $@
       endef
 
       define LINK_CXX_SHARED_COMMAND
         $(CXXLINKSHARED) -o $@ $(OBJECTS) $(LDFLAGS) $(MODULE_LDFLAGS) $(GLOBAL_LDFLAGS)
         $(OBJCOPY) --only-keep-debug $@ $(@:$(SOLIBEXT)=.debuginfo)
-        $(OBJCOPY) --strip-debug $@
         $(OBJCOPY) --add-gnu-debuglink=$(@:$(SOLIBEXT)=.debuginfo) $@
       endef
 

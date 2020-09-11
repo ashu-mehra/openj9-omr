@@ -1192,6 +1192,12 @@ OMR::CodeGenerator::needRelocationsForPersistentInfoData()
    }
 
 bool
+OMR::CodeGenerator::needRelocationsForPersistentProfileInfoData()
+   {
+   return self()->comp()->compileRelocatableCode();
+   }
+
+bool
 OMR::CodeGenerator::needRelocationsForCurrentMethodPC()
    {
    return self()->comp()->compileRelocatableCode();

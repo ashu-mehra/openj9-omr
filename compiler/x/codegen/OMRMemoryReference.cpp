@@ -1297,6 +1297,13 @@ OMR::X86::MemoryReference::addMetaDataForCodeAddress(
                         }
                      else
                         {
+#if 0
+                        if (self()->getSymbolReference().getSymbol()->isRecompQueuedFlag())
+                           {
+                           fprintf(stdout, "Attention!!! OMR::X86::MemoryReference::addMetaDataForCodeAddress> symref: %p symbol: %p is recompilation queued flag\n", self()->getSymbolReference(), self()->getSymbolReference().getSymbol());
+                           }
+#endif
+                        fprintf(stdout, "OMR::X86::MemoryReference::addMetaDataForCodeAddress> symref: %p, sym: %p, cpIndex: %d\n", self()->getSymbolReference(), self()->getSymbolReference().getSymbol(), self()->getSymbolReference().getCPIndex());
                         cg->addExternalRelocation(new (cg->trHeapMemory()) TR::ExternalRelocation(cursor,
                                                                            (uint8_t *)&self()->getSymbolReference(),
                                                                            node ? (uint8_t *)(uintptr_t)node->getInlinedSiteIndex() : (uint8_t *)-1,

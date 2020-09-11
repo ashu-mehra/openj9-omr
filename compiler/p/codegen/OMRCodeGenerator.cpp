@@ -2194,11 +2194,24 @@ OMR::Power::CodeGenerator::addMetaDataForLoadAddressConstantFixed(
 
       case TR_BlockFrequency:
 	 {
-         TR::StaticSymbol *staticSym = node->getSymbolReference()->getStaticSymbol();
-         TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
-         relo = new (self()->trHeapMemory()) TR::BeforeBinaryEncodingExternalRelocation(firstInstruction, (uint8_t *)staticSym->getStaticAddress(), TR_BlockFrequency, self());
+         TR_RelocationRecordInformation *recordInfo = ( TR_RelocationRecordInformation *)comp->trMemory()->allocateMemory(sizeof(TR_RelocationRecordInformation), heapAlloc);
+         recordInfo->data1 = (uintptr_t)node->getSymbolReference();
+         recordInfo->data2 = (uintptr_t)seqKind;
+         relo = new (self()->trHeapMemory()) TR::BeforeBinaryEncodingExternalRelocation(
+            firstInstruction,
+            (uint8_t *)recordInfo,
+            TR_BlockFrequency, self());
          break;
          }
+/*
+      case TR_RecompQueuedFlag:
+         {
+         TR::StaticSymbol *staticSym = node->getSymbolReference()->getSymbol()->getStaticSymbol();
+         TR_ASSERT(staticSym, "Expected static symbol for recompilation queued flag\n");
+         relo = new (self()->trHeapMemory()) TR::BeforeBinaryEncodingExternalRelocation(firstInstruction, (uint8_t *)staticSym->getStaticAddress(), TR_RecompQueuedFlag, self());
+         break;
+         }
+*/
       }
 
    if (comp->getOption(TR_UseSymbolValidationManager) && !relo)
@@ -2356,15 +2369,36 @@ OMR::Power::CodeGenerator::addMetaDataForLoadIntConstantFixed(
       }
    else if (typeAddress == TR_BlockFrequency)
       {
-      TR::StaticSymbol *staticSym = node->getSymbolReference()->getStaticSymbol();
+      TR_RelocationRecordInformation *recordInfo = ( TR_RelocationRecordInformation *)comp->trMemory()->allocateMemory(sizeof( TR_RelocationRecordInformation), heapAlloc);
+      recordInfo->data1 = (uintptr_t)node->getSymbolReference();
+      recordInfo->data2 = orderedPairSequence2;
+      self()->addExternalRelocation(new (self()->trHeapMemory()) TR::ExternalOrderedPair32BitRelocation((uint8_t *)firstInstruction,
+                                                                                          (uint8_t *)secondInstruction,
+                                                                                          (uint8_t *)recordInfo,
+                                                                                          (TR_ExternalRelocationTargetKind)typeAddress, self()),
+                                                                                          __FILE__, __LINE__, node);
+/*
+      TR::StaticSymbol *staticSym = node->getSymbolReference()->getSymbol()->getStaticSymbol();
       TR_ASSERT(staticSym, "Expected static symbol for block frequency\n");
       TR::Relocation *relocation = new (self()->trHeapMemory()) TR::ExternalOrderedPair32BitRelocation((uint8_t *)firstInstruction,
                                                                                           (uint8_t *)secondInstruction,
                                                                                           (uint8_t *)staticSym->getStaticAddress(),
                                                                                           TR_BlockFrequency, self());
       self()->addExternalRelocation(relocation, __FILE__, __LINE__, node);
-      break;
+*/
       }
+/*
+   else if (typeAddress == TR_RecompQueuedFlag)
+      {
+      TR::StaticSymbol *staticSym = node->getSymbolReference()->getSymbol()->getStaticSymbol();
+      TR_ASSERT(staticSym, "Expected static symbol for recompilation queued flag\n");
+      TR::Relocation *relocation = new (self()->trHeapMemory()) TR::ExternalOrderedPair32BitRelocation((uint8_t *)firstInstruction,
+                                                                                          (uint8_t *)secondInstruction,
+                                                                                          (uint8_t *)staticSym->getStaticAddress(),
+                                                                                          TR_RecompQueuedFlag, self());
+      self()->addExternalRelocation(relocation, __FILE__, __LINE__, node);
+      }
+*/
    else if (typeAddress != -1)
       {
       TR_RelocationRecordInformation *recordInfo = ( TR_RelocationRecordInformation *)comp->trMemory()->allocateMemory(sizeof( TR_RelocationRecordInformation), heapAlloc);
